@@ -6,13 +6,28 @@
 
 # This is mainly taken from https://pad.freifunk.net/p/fastd_anbindung
 
+# enable output what is executed:
+set -x
+
 MACHINE=testnode
 COMMUNITY=ffgc
+
+cat > /etc/apt/sources.list << EOF
+deb http://ftp.de.debian.org/debian wheezy main
+deb-src http://ftp.de.debian.org/debian wheezy main
+
+deb http://security.debian.org/ wheezy/updates main contrib
+deb-src http://security.debian.org/ wheezy/updates main contrib
+
+# wheezy-updates, previously known as 'volatile'
+deb http://ftp.de.debian.org/debian wheezy-updates main contrib
+deb-src http://ftp.de.debian.org/debian wheezy-updates main contrib
+EOF
 
 apt-get update
 apt-get install --no-install-recommends -y puppet git tcpdump mtr-tiny vim unzip
 
-# PPA für fastd und batman-adv
+# PPA for fastd and batman-adv
 echo "deb http://repo.universe-factory.net/debian/ sid main" > /etc/apt/sources.list.d/batman-adv-universe-factory.net.list
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 16EF3F64CB201D9C
 apt-get update
@@ -78,28 +93,34 @@ EOF
 
 
 #bridge utils installieren
-apt-get install bridge-utils
+apt-get install -y bridge-utils
+
 
 # batman installieren 
 # keine offizielle Batman-Adv Version verwenden, Clients müssen die Optimierte Version aus dem Gluon Repo verwenden.
 cd /tmp/
 wget https://github.com/freifunk-gluon/batman-adv-legacy/archive/master.zip
+rm -Rf batman-adv-legacy-master
 unzip master.zip
-cd batman-adv-legacy-master/
+cd /tmp/batman-adv-legacy-master/
 make
 make install
 
-# batman-adv in modules einfügen
-echo "batman-adv" >> /etc/modules
+# add batman-adv in modules if not exists
+LINE="batman-adv"
+FILE=/etc/modules
+grep -q "$LINE" "$FILE" || echo "$LINE" >> "$FILE"
 
-apt-get install batctl
+apt-get install -y batctl
 
 MAC=$(printf '%02X:%02X:%02X:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256] $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
 # oder $(hexdump -n6 -e '/1 ":%02X"' /dev/random|sed s/^://g)
 # lower case: $(od /dev/urandom -w6 -tx1 -An|sed -e 's/ //' -e 's/ /::/g'|head -n 1)
 
-# nun in /etc/network/interfaces folgendes am Ende einfügen
-cat >>  /etc/network/interfaces << EOF
+# add devices into /etc/network/interfaces
+LINE="iface br0 inet dhcp"
+FILE=/etc/network/interfaces
+grep -q "$LINE" "$FILE" || cat >> "$FILE" << EOF
 auto br0
 iface br0 inet dhcp
         hwaddress ether ${MAC}
@@ -135,14 +156,7 @@ net.ipv6.conf.default.accept_ra = 1
 net.ipv6.conf.eth0.accept_ra = 1
 EOF
 # nun noch laden 
-sysctl -p 
-
-
-apt-get update
-apt-get install --no-install-recommends -y \
-        puppet git tcpdump mtr-tiny vim \
-        openvpn tinc iptables-persistent
-
+sysctl -p
 
 
 cd "/vagrant/machines/${MACHINE}/"

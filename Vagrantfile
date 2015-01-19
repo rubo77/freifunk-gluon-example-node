@@ -11,7 +11,8 @@ VAGRANTFILE_API_VERSION = "2"
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Every Vagrant virtual environment requires a box to build off of.
-  config.vm.box = "loicfrering/debian-unstable"
+  config.vm.box = "box-cutter/debian77-i386"
+  # ( discover more at https://vagrantcloud.com/boxes/search?utf8=%E2%9C%93&sort=created_at&provider=virtualbox&q=debian+i386+sid
 
   config.vm.provider "virtualbox" do |vb|
     # Don't boot with headless mode
