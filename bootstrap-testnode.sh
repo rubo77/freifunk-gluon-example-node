@@ -25,12 +25,26 @@ deb-src http://ftp.de.debian.org/debian wheezy-updates main contrib
 EOF
 
 apt-get update
-apt-get install --no-install-recommends -y puppet git tcpdump mtr-tiny vim unzip
+apt-get install --no-install-recommends -y puppet git tcpdump mtr-tiny vim unzip zip
 
 # PPA for fastd and batman-adv
 echo "deb http://repo.universe-factory.net/debian/ sid main" > /etc/apt/sources.list.d/batman-adv-universe-factory.net.list
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 16EF3F64CB201D9C
 apt-get update
+
+# fastd installieren:
+
+# wheezy-Backports for libjson-c2 ( fastd >= 15)
+echo "deb http://http.debian.net/debian wheezy-backports main" > /etc/apt/sources.list.d/wheezy-backports.list
+gpg --keyserver pgpkeys.mit.edu --recv-key 16EF3F64CB201D9C
+gpg -a --export 16EF3F64CB201D9C | apt-key add -
+
+cd /tmp/
+wget http://download.opensuse.org/repositories/home:fusselkater:ffms/Debian_7.0/Release.key
+apt-key add - < Release.key
+
+apt-get update
+apt-get install fastd
 
 useradd --system --no-create-home --shell /bin/false fastd
 mkdir /var/log/fastd
@@ -91,9 +105,8 @@ on up "
 ";
 EOF
 
-
-#bridge utils installieren
-apt-get install -y bridge-utils
+#install bridge utils for networking; kernel headers and build-essential for make
+apt-get install -y bridge-utils build-essential linux-headers-$(uname -r)
 
 
 # batman installieren 
@@ -112,6 +125,7 @@ FILE=/etc/modules
 grep -q "$LINE" "$FILE" || echo "$LINE" >> "$FILE"
 
 apt-get install -y batctl
+batctl -v
 
 MAC=$(printf '%02X:%02X:%02X:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256] $[RANDOM%256] $[RANDOM%256] $[RANDOM%256])
 # oder $(hexdump -n6 -e '/1 ":%02X"' /dev/random|sed s/^://g)
@@ -121,6 +135,7 @@ MAC=$(printf '%02X:%02X:%02X:%02X:%02X:%02X\n' $[RANDOM%256] $[RANDOM%256] $[RAN
 LINE="iface br0 inet dhcp"
 FILE=/etc/network/interfaces
 grep -q "$LINE" "$FILE" || cat >> "$FILE" << EOF
+#BOOTSTRAP-BEGIN
 auto br0
 iface br0 inet dhcp
         hwaddress ether ${MAC}
@@ -154,11 +169,20 @@ net.ipv6.conf.eth0.autoconf = 1
 net.ipv6.conf.all.accept_ra = 1
 net.ipv6.conf.default.accept_ra = 1
 net.ipv6.conf.eth0.accept_ra = 1
+#BOOTSTRAP-END
 EOF
 # nun noch laden 
 sysctl -p
 
+# Speed-up Grub boot, but always show the boot menu.
+sudo sed -i 's/GRUB_TIMEOUT=[[:digit:]]\+/GRUB_TIMEOUT=1/g' /etc/default/grub
+sudo sed -i 's/GRUB_HIDDEN_TIMEOUT/#GRUB_HIDDEN_TIMEOUT/g' /etc/default/grub
+sudo update-grub
 
-cd "/vagrant/machines/${MACHINE}/"
-cp -r * /root
-cd /root
+#cd "/vagrant/machines/${MACHINE}/"
+#cp -r * /root
+#cd /root
+
+
+# in case anything goes wrong, delete the lines in nano /etc/network/interfaces and in /etc/modules
+# otherwise you cannot start networking and though not login to your machine!
