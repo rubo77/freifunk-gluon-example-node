@@ -1,3 +1,19 @@
+This Project is Discontinued
+---
+
+Everything is merged into the FfNord Community Example:
+----
+
+https://github.com/rubo77/ffnord-example/tree/working
+
+
+
+
+
+
+----
+archive:
+
 # Freifunk Example Node
 
 Instead of taking real communities we decided to take a subset of the DC Universe
