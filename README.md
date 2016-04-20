@@ -4,7 +4,7 @@ This Project is Discontinued
 Everything is merged into the FfNord Community Example:
 ----
 
-https://github.com/rubo77/ffnord-example/tree/working
+https://github.com/rubo77/ffnord-example/tree/testnodes
 
 
 
